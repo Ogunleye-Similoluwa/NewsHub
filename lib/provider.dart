@@ -12,6 +12,7 @@ class NewsProvider with ChangeNotifier {
   String _selectedCountry = "us";
   String? _searchQuery;
   int _currentPage = 1;
+  List<Article> _trendingArticles = [];
 
   NewsProvider(String apiKey) : _newsService = NewsService(apiKey) {
     _loadSavedArticles();
@@ -24,6 +25,7 @@ class NewsProvider with ChangeNotifier {
   String get selectedCategory => _selectedCategory;
   String get selectedCountry => _selectedCountry;
   String? get searchQuery => _searchQuery;
+  List<Article> get trendingArticles => _trendingArticles;
 
   Future<void> fetchNews({bool refresh = false}) async {
     if (refresh) _currentPage = 1;
@@ -93,5 +95,10 @@ class NewsProvider with ChangeNotifier {
 
   bool isArticleSaved(Article article) {
     return _savedArticles.any((a) => a.url == article.url);
+  }
+
+  Future<void> fetchTrendingNews() async {
+    // Implement trending news fetching logic
+    // You might want to sort by popularity or use a different API endpoint
   }
 }

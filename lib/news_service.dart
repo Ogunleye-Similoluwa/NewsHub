@@ -1,5 +1,5 @@
-import 'package:news_reader/models/article.dart';
-import 'package:news_reader/models/news_api.dart';
+import 'package:news_api_flutter_package/model/article.dart';
+import 'package:news_api_flutter_package/news_api_flutter_package.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -7,21 +7,17 @@ class NewsService {
   final String apiKey;
   final NewsAPI newsAPI;
 
-  NewsService(this.apiKey) : newsAPI = NewsAPI(apiKey: apiKey,);
+  NewsService(this.apiKey) : newsAPI = NewsAPI(apiKey: apiKey);
 
   Future<List<Article>> getTopHeadlines({
     required String country,
-    String? query,
     required String category,
-    int page = 1,
-    int pageSize = 50,
+    int pageSize = 20,
   }) async {
     return await newsAPI.getTopHeadlines(
       country: country,
-      // query: query,
       category: category,
-      page: page,
-      // pageSize: pageSize,
+      pageSize: pageSize,
     );
   }
 
@@ -63,14 +59,14 @@ class NewsService {
       await prefs.setStringList('savedArticles', savedUrls);
 
       Map<String, dynamic> articleMap = {
-        'source': {
-          "description": article.source?.description,
-          "id": article.source?.id,
-          "category": article.source?.category,
-          "country": article.source?.country,
-          "language": article.source?.language,
-          "name": article.source?.name,
-          "url": article.source?.url  
+        'source':{
+         "description": article.source.description,
+         "id": article.source.id,
+          "category":article.source.category,
+          "country":article.source.country,
+         "language": article.source.language,
+          "name":article.source.name,
+          "url":article.source.url
         },
         'author': article.author,
         'title': article.title,

@@ -1,51 +1,26 @@
-import 'package:news_reader/models/article.dart';
-import 'package:news_reader/services/reddit_service.dart';
-import 'package:news_reader/services/rss_service.dart';
-import 'package:news_reader/services/wikipedia_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
+import 'package:news_api_flutter_package/model/article.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'combined_news_service.dart';
+
 class FreeNewsService {
-  final RSSService _rssService = RSSService();
-  final RedditService _redditService = RedditService();
-  final WikipediaService _wikiService = WikipediaService();
+  final CombinedNewsService _combinedService;
   final SharedPreferences _prefs;
 
-  FreeNewsService._(this._prefs);
+  FreeNewsService._(this._combinedService, this._prefs);
 
-  static Future<FreeNewsService> create() async {
+  static Future<FreeNewsService> create(String apiKey) async {
     final prefs = await SharedPreferences.getInstance();
-    return FreeNewsService._(prefs);
+    final combinedService = await CombinedNewsService.create(apiKey);
+    return FreeNewsService._(combinedService, prefs);
   }
 
   Future<List<Article>> getNews() async {
-    List<Article> allArticles = [];
-    
-    try {
-      allArticles.addAll(await _rssService.getNewsByCategory('general'));
-    } catch (e) {
-      print('RSS Error: $e');
-    }
-    
-    try {
-      allArticles.addAll(await _redditService.getNews());
-    } catch (e) {
-      print('Reddit Error: $e');
-    }
-    
-    try {
-      allArticles.addAll(await _wikiService.getCurrentEvents());
-    } catch (e) {
-      print('Wikipedia Error: $e');
-    }
-
-    // Sort by date
-    allArticles.sort((a, b) => 
-      (b.publishedAt ?? DateTime.now())
-        .compareTo(a.publishedAt ?? DateTime.now())
+    return _combinedService.getNews(
+      category: 'general',
+      country: 'us',
     );
-    
-    return allArticles;
   }
 
   Future<List<Article>> getSavedArticles() async {

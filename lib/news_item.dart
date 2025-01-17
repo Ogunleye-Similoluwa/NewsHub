@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:news_reader/models/article.dart';
+import 'package:news_api_flutter_package/model/article.dart';
+
 import 'package:news_reader/provider.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';

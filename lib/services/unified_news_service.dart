@@ -1,66 +1,68 @@
-import '../models/article.dart';
-import '../news_service.dart';
+import 'package:news_api_flutter_package/model/article.dart';
+
+import 'package:news_api_flutter_package/news_api_flutter_package.dart';
 import 'mediastack_service.dart';
 import 'gnews_service.dart';
 import 'guardian_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class UnifiedNewsService {
-  final NewsService primaryService;
-  final MediastackService backupService1;
-  final GNewsService backupService2;
-  final GuardianService backupService3;
+  final NewsAPI primaryService;
+  final SharedPreferences _prefs;
 
-  UnifiedNewsService({
+  UnifiedNewsService._({
     required this.primaryService,
-    required this.backupService1,
-    required this.backupService2,
-    required this.backupService3,
-  });
+    required SharedPreferences prefs,
+  }) : _prefs = prefs;
 
-  Future<List<Article>> getNews({
+  static Future<UnifiedNewsService> create({
+    required NewsAPI primaryService,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    return UnifiedNewsService._(
+      primaryService: primaryService,
+      prefs: prefs,
+    );
+  }
+
+  Future<List<Object>> getNews({
     required String category,
     required String country,
     int page = 1,
   }) async {
-    try {
-      return await primaryService.getTopHeadlines(
-        category: category,
-        country: country,
-        page: page,
-      );
-    } catch (e) {
-      try {
-        return await backupService1.getNews(
-          category: category,
-          country: country,
-          offset: (page - 1) * 20,
-        );
-      } catch (e) {
-        try {
-          return await backupService2.getTopNews(
-            category: category,
-            country: country,
-            page: page,
-          );
-        } catch (e) {
-          return await backupService3.getArticles(
-            section: category,
-            page: page,
-          );
-        }
-      }
-    }
+    return await primaryService.getTopHeadlines(
+      category: category,
+      country: country,
+      page: page,
+    );
   }
 
   Future<List<Article>> getSavedArticles() async {
-    return await primaryService.getSavedArticles();
+    List<String> savedUrls = _prefs.getStringList('savedArticles') ?? [];
+    List<Article> articles = [];
+    for (String url in savedUrls) {
+      String? json = _prefs.getString(url);
+      if (json != null) {
+        articles.add(Article.fromJson(jsonDecode(json)));
+      }
+    }
+    return articles;
   }
 
   Future<void> saveArticle(Article article) async {
-    await primaryService.saveArticle(article);
+    List<String> savedUrls = _prefs.getStringList('savedArticles') ?? [];
+    if (!savedUrls.contains(article.url)) {
+      savedUrls.add(article.url!);
+      await _prefs.setStringList('savedArticles', savedUrls);
+      await _prefs.setString(article.url!, jsonEncode(article));
+    }
   }
 
   Future<void> removeArticle(Article article) async {
-    await primaryService.removeArticle(article);
+    List<String> savedUrls = _prefs.getStringList('savedArticles') ?? [];
+    savedUrls.remove(article.url);
+    await _prefs.setStringList('savedArticles', savedUrls);
+    await _prefs.remove(article.url!);
   }
 } 

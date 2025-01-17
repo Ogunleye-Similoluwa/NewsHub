@@ -49,6 +49,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   animated_text_kit: ^4.2.2
   google_fonts: ^6.2.1
+  news_api_flutter_package: ^1.2.0
 
 dev_dependencies:
   flutter_test:

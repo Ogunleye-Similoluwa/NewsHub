@@ -1,6 +1,8 @@
 import 'package:http/http.dart' as http;
+import 'package:news_api_flutter_package/model/article.dart';
 import 'package:xml/xml.dart';
-import '../models/article.dart';
+
+import 'package:news_api_flutter_package/model/source.dart';
 
 class RSSService {
   static const Map<String, List<String>> categoryFeeds = {
@@ -49,19 +51,26 @@ class RSSService {
         final items = document.findAllElements('item');
         
         articles.addAll(items.map((item) {
-          String? imageUrl = item.findElements('media:content').firstOrNull?.getAttribute('url') ??
-                           item.findElements('enclosure').firstOrNull?.getAttribute('url');
-          
+          final source = Source(
+            Uri.parse(feed).host,
+            Uri.parse(feed).host,
+            'RSS Feed',
+            feed,
+            'general',
+            'en',
+            'us'
+          );
+          final thumbnailUrl = item.findElements('media:content').firstOrNull?.getAttribute('url') ??
+                                item.findElements('enclosure').firstOrNull?.getAttribute('url');
           return Article(
-            title: item.findElements('title').firstOrNull?.text,
-            description: item.findElements('description').firstOrNull?.text?.replaceAll(RegExp(r'<[^>]*>'), ''),
-            url: item.findElements('link').firstOrNull?.text,
-            urlToImage: imageUrl,
-            publishedAt: DateTime.tryParse(
-              item.findElements('pubDate').firstOrNull?.text ?? ''
-            ),
-            author: item.findElements('author').firstOrNull?.text,
-            source: Source(name: Uri.parse(feed).host),
+            source,
+            item.findElements('author').firstOrNull?.text,
+            item.findElements('title').firstOrNull?.text,
+            item.findElements('description').firstOrNull?.text?.replaceAll(RegExp(r'<[^>]*>'), ''),
+            item.findElements('link').firstOrNull?.text,
+            thumbnailUrl != null && thumbnailUrl.isNotEmpty ? thumbnailUrl : null,
+            DateTime.tryParse(item.findElements('pubDate').firstOrNull?.text ?? '')?.toIso8601String(),
+            item.findElements('content:encoded').firstOrNull?.text
           );
         }).toList());
       }

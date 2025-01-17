@@ -1,12 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
-import 'package:news_reader/models/article.dart';
+import 'package:news_api_flutter_package/model/article.dart';
 import 'package:news_reader/services/combined_news_service.dart';
-import 'package:news_reader/services/free_news_service.dart';
-import 'package:news_reader/services/unified_news_service.dart';
-import 'package:retry/retry.dart';
 import 'services/storage_service.dart';
-import 'news_service.dart';
 
 enum LoadingState { initial, loading, loaded, error }
 enum ErrorType { network, api, unknown }
@@ -34,6 +30,7 @@ class NewsProvider with ChangeNotifier {
   }) : _newsService = newsService,
        _storageService = storageService {
     _loadSavedArticles();
+    fetchTrendingNews();
   }
 
   List<Article> get articles => _articles;
@@ -49,6 +46,11 @@ class NewsProvider with ChangeNotifier {
   List<Article> get trendingArticles => _trendingArticles;
 
   Future<void> fetchNews({bool refresh = false}) async {
+    if (_searchQuery != null && _searchQuery!.isNotEmpty) {
+      await _searchNews(refresh: refresh);
+      return;
+    }
+
     if (refresh) _currentPage = 1;
 
     if (_currentPage == 1) {
@@ -109,9 +111,57 @@ class NewsProvider with ChangeNotifier {
   }
 
   void setSearchQuery(String? query) {
+    if (query == null || query.isEmpty) {
+      clearSearch();
+      return;
+    }
+    
     _searchQuery = query;
-    _currentPage = 50;
-    fetchNews(refresh: true);
+    _currentPage = 1;
+    _searchNews(refresh: true);
+  }
+
+  Future<void> _searchNews({bool refresh = false}) async {
+    if (refresh) _currentPage = 1;
+
+    if (_currentPage == 1) {
+      _loadingState = LoadingState.loading;
+      notifyListeners();
+    }
+
+    try {
+      final hasInternet = await InternetConnectionChecker().hasConnection;
+      
+      if (!hasInternet) {
+        _errorType = ErrorType.network;
+        _errorMessage = 'No internet connection.';
+        _loadingState = LoadingState.error;
+        notifyListeners();
+        return;
+      }
+
+      final searchResults = await _newsService.searchNews(
+        _searchQuery!,
+        page: _currentPage,
+      );
+
+      if (_currentPage == 1) {
+        _articles = searchResults;
+      } else {
+        _articles.addAll(searchResults);
+      }
+
+      _currentPage++;
+      _loadingState = LoadingState.loaded;
+      _errorType = null;
+      _errorMessage = null;
+
+    } catch (e) {
+      _errorMessage = 'Failed to search news. Please try again.';
+      _loadingState = LoadingState.error;
+      print("Error searching news: $e");
+    }
+    notifyListeners();
   }
 
   Future<void> toggleSaveArticle(Article article) async {
@@ -136,7 +186,25 @@ class NewsProvider with ChangeNotifier {
   }
 
   Future<void> fetchTrendingNews() async {
-    // Implement trending news fetching logic
-    // You might want to sort by popularity or use a different API endpoint
+    try {
+      _loadingState = LoadingState.loading;
+      notifyListeners();
+      
+      _trendingArticles = await _newsService.getTrendingNews();
+      _loadingState = LoadingState.loaded;
+      
+      notifyListeners();
+    } catch (e) {
+      print("Error fetching trending news: $e");
+      _trendingArticles = [];
+      _loadingState = LoadingState.error;
+      notifyListeners();
+    }
+  }
+
+  void clearSearch() {
+    _searchQuery = null;
+    _currentPage = 1;
+    fetchNews(refresh: true);
   }
 }

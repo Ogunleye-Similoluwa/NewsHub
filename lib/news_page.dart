@@ -174,6 +174,11 @@ class _NewsHubPageState extends State<NewsHubPage> with SingleTickerProviderStat
         onSubmitted: (value) {
           context.read<NewsProvider>().setSearchQuery(value);
         },
+        onChanged: (value) {
+          if (value.isEmpty) {
+            Provider.of<NewsProvider>(context, listen: false).clearSearch();
+          }
+        },
       ),
     );
   }

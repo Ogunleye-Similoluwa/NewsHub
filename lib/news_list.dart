@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:news_reader/models/article.dart';
+import 'package:news_api_flutter_package/model/article.dart';
+
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import 'news_item.dart';

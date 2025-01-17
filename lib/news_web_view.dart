@@ -10,7 +10,7 @@ class NewsWebView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("NEWS NOW"),
+        title: Text("NEWSHUB"),
         backgroundColor: Theme.of(context).primaryColor,
       ),
       body: WebViewWidget(

@@ -5,10 +5,10 @@ NewsHub is a modern news aggregator app built with Flutter that combines multipl
 ## Screenshots
 
 <p float="left">
-  <img src="screenshots/home_screen.png" width="200" alt="Home Screen"/>
-  <img src="screenshots/trending_screen.png" width="200" alt="Trending News"/>
-  <img src="screenshots/search_screen.png" width="200" alt="Search"/>
-  <img src="screenshots/saved_articles.png" width="200" alt="Saved Articles"/>
+  <img src="screenshots/home.png" width="200" alt="Home Screen"/>
+  <img src="screenshots/trending.png" width="200" alt="Trending News"/>
+  <img src="screenshots/news.png" width="200" alt="News"/>
+  <img src="screenshots/saved.png" width="200" alt="Saved Articles"/>
 </p>
 
 

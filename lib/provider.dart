@@ -1,27 +1,48 @@
 import 'package:flutter/foundation.dart';
-import 'package:news_api_flutter_package/model/article.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:news_reader/models/article.dart';
+import 'package:news_reader/services/combined_news_service.dart';
+import 'package:news_reader/services/free_news_service.dart';
+import 'package:news_reader/services/unified_news_service.dart';
+import 'package:retry/retry.dart';
+import 'services/storage_service.dart';
 import 'news_service.dart';
 
+enum LoadingState { initial, loading, loaded, error }
+enum ErrorType { network, api, unknown }
+
 class NewsProvider with ChangeNotifier {
-  final NewsService _newsService;
+  final CombinedNewsService _newsService;
+  final StorageService _storageService;
+  
   List<Article> _articles = [];
   List<Article> _savedArticles = [];
+  LoadingState _loadingState = LoadingState.initial;
+  ErrorType? _errorType;
+  String? _errorMessage;
+  
   Set<String> _userTags = {};
-  bool _isLoading = false;
   String _selectedCategory = "general";
   String _selectedCountry = "us";
   String? _searchQuery;
   int _currentPage = 1;
   List<Article> _trendingArticles = [];
 
-  NewsProvider(String apiKey) : _newsService = NewsService(apiKey) {
+  NewsProvider({
+    required CombinedNewsService newsService,
+    required StorageService storageService,
+  }) : _newsService = newsService,
+       _storageService = storageService {
     _loadSavedArticles();
   }
 
   List<Article> get articles => _articles;
   List<Article> get savedArticles => _savedArticles;
   Set<String> get userTags => _userTags;
-  bool get isLoading => _isLoading;
+  bool get isLoading => _loadingState == LoadingState.loading;
+  LoadingState get loadingState => _loadingState;
+  ErrorType? get errorType => _errorType;
+  String? get errorMessage => _errorMessage;
   String get selectedCategory => _selectedCategory;
   String get selectedCountry => _selectedCountry;
   String? get searchQuery => _searchQuery;
@@ -31,31 +52,48 @@ class NewsProvider with ChangeNotifier {
     if (refresh) _currentPage = 1;
 
     if (_currentPage == 1) {
-      _isLoading = true;
+      _loadingState = LoadingState.loading;
       notifyListeners();
     }
 
     try {
-      final newArticles = await _newsService.getTopHeadlines(
-        country: _selectedCountry,
+      final hasInternet = await InternetConnectionChecker().hasConnection;
+      
+      if (!hasInternet) {
+        if (_currentPage == 1) {
+          _articles = _storageService.getCachedArticles();
+          _loadingState = LoadingState.loaded;
+          _errorType = ErrorType.network;
+          _errorMessage = 'No internet connection. Showing cached content.';
+          notifyListeners();
+        }
+        return;
+      }
+      final newArticles = await _newsService.getNews(
         category: _selectedCategory,
-        query: _searchQuery,
-        pageSize: 50
+        country: _selectedCountry,
+        page: _currentPage,
       );
 
       if (_currentPage == 1) {
         _articles = newArticles;
+        await _storageService.cacheArticles(newArticles);
       } else {
         _articles.addAll(newArticles);
       }
 
       _currentPage++;
+      _loadingState = LoadingState.loaded;
+      _errorType = null;
+      _errorMessage = null;
+
     } catch (e) {
+      _errorMessage = 'Failed to load news. Trying alternative sources...';
+      _errorMessage = 'Failed to load news. Please try again.';
+      _loadingState = LoadingState.error;
       print("Error fetching news: $e");
-    } finally {
-      _isLoading = false;
-      notifyListeners();
     }
+    notifyListeners();
   }
 
   void setCategory(String category) {

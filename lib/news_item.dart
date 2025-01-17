@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:news_api_flutter_package/model/article.dart';
+import 'package:news_reader/models/article.dart';
 import 'package:news_reader/provider.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'news_web_view.dart';
 
@@ -37,12 +38,17 @@ class NewsItem extends StatelessWidget {
             if (article.urlToImage != null)
               ClipRRect(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-                child: Image.network(
-                  article.urlToImage!,
+                child: CachedNetworkImage(
+                  imageUrl: article.urlToImage!,
                   height: 200,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
+                  placeholder: (context, url) => Container(
+                    height: 200,
+                    color: Colors.grey[300],
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => Container(
                     height: 200,
                     color: Colors.grey[300],
                     child: Icon(Icons.image_not_supported),

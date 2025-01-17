@@ -1,21 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
-import 'package:news_reader/provider.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import 'services/storage_service.dart';
+import 'services/free_news_service.dart';
+import 'services/combined_news_service.dart';
+
+import 'provider.dart';
 import 'app_theme.dart';
 import 'news_page.dart';
 
-void main()async {
-  await dotenv.load(fileName: ".env");
-
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await dotenv.load(fileName: ".env");
+  final apiKey = dotenv.env['NEWS_API_KEY'] ?? '';
+  
+  final storageService = StorageService();
+  await storageService.init();
 
-  await SharedPreferences.getInstance();
-    await dotenv.load(fileName: ".env");
-  runApp(const MyApp());
+  final combinedNewsService = await CombinedNewsService.create(apiKey);
+  
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => NewsProvider(
+            newsService: combinedNewsService,
+            storageService: storageService,
+          ),
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -23,14 +41,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String? apikey = dotenv.env['API_KEY'];
-    return ChangeNotifierProvider(
-      create: (_) => NewsProvider(apikey??""),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home:NewsHubPage()
-      ),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      home: NewsHubPage(),
     );
   }
 }

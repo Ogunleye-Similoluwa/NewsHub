@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class NewsWebView extends StatelessWidget {
   final String url;
@@ -8,17 +8,15 @@ class NewsWebView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WebviewScaffold(
-      url: url,
+    return Scaffold(
       appBar: AppBar(
         title: Text("NEWS NOW"),
         backgroundColor: Theme.of(context).primaryColor,
       ),
-      withZoom: true,
-      withLocalStorage: true,
-      // hidden: true,
-      initialChild: Center(
-        child: CircularProgressIndicator(),
+      body: WebViewWidget(
+        controller: WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..loadRequest(Uri.parse(url)),
       ),
     );
   }

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:news_reader/provider.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-import 'package:news_api_flutter_package/model/article.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:shimmer/shimmer.dart';
 
 import 'category_list.dart';
 import 'news_list.dart';
@@ -100,6 +100,8 @@ class _NewsHubPageState extends State<NewsHubPage> with SingleTickerProviderStat
       flexibleSpace: isSearching
           ? null
           : FlexibleSpaceBar(
+              centerTitle: false,
+              titlePadding: EdgeInsets.only(left: 16, bottom: 60),
               title: AnimatedTextKit(
                 animatedTexts: [
                   TypewriterAnimatedText(
@@ -108,6 +110,7 @@ class _NewsHubPageState extends State<NewsHubPage> with SingleTickerProviderStat
                       textStyle: theme.textTheme.headlineMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 24,
                       ),
                     ),
                     speed: Duration(milliseconds: 200),
@@ -282,9 +285,24 @@ class _NewsHubPageState extends State<NewsHubPage> with SingleTickerProviderStat
   Widget _buildNewsTab() {
     return Consumer<NewsProvider>(
       builder: (context, provider, child) {
-        if (provider.isLoading && provider.articles.isEmpty) {
-          return Center(child: CircularProgressIndicator());
+        if (provider.loadingState == LoadingState.loading && 
+            provider.articles.isEmpty) {
+          return _buildLoadingShimmer();
         }
+        
+        if (provider.loadingState == LoadingState.error) {
+          return _buildErrorState(
+            provider.errorType!, 
+            provider.errorMessage!
+          );
+        }
+
+        if (provider.articles.isEmpty) {
+          return Center(
+            child: Text('No articles found'),
+          );
+        }
+
         return NewsList(
           articles: provider.articles,
           refreshController: _refreshController,
@@ -294,7 +312,7 @@ class _NewsHubPageState extends State<NewsHubPage> with SingleTickerProviderStat
           },
           onLoading: () async {
             await provider.fetchNews();
-            _refreshController.requestRefresh();
+            _refreshController.loadComplete();
           },
         );
       },
@@ -331,6 +349,55 @@ class _NewsHubPageState extends State<NewsHubPage> with SingleTickerProviderStat
           },
         );
       },
+    );
+  }
+
+  Widget _buildErrorState(ErrorType type, String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            type == ErrorType.network 
+                ? Icons.wifi_off 
+                : Icons.error_outline,
+            size: 64,
+            color: Colors.grey,
+          ),
+          SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
+          ),
+          SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () => context.read<NewsProvider>().fetchNews(refresh: true),
+            child: Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingShimmer() {
+    return ListView.builder(
+      itemCount: 10,
+      itemBuilder: (context, index) => Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: Container(
+          margin: EdgeInsets.all(8),
+          height: 120,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
     );
   }
 }
